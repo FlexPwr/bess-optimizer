@@ -1,4 +1,4 @@
-## Implementation of the FlexPower Cross-Market BESS Optimization Model in Python using pyomo.
+## Implementation of the FlexPower Cross-Market BESS Optimization Model in Python using pyomo
 
 This repository contains the Cross-Market Optimization model which is also used to calculate the [Flex Index (wip link)](https://flex-power.energy/?page_id=5811). 
 
