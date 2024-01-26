@@ -8,7 +8,7 @@ Note that you have to install the [GLPK solver](https://www.gnu.org/software/glp
 
 
 
-• The file [flexpower_optimizer.py](flexpower_optimizer.py) includes the implementation of the BESS optimization for the DA Auction, ID Auction and ID Continuous markets. 
+• The file [optimizer.py](optimizer.py) includes the implementation of the BESS optimization for the DA Auction, ID Auction and ID Continuous markets. 
 
 • The notebook [example.ipynb](example.ipynb) shows how the optimization works for an example day.
 
