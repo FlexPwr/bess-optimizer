@@ -12,6 +12,6 @@ Note that you have to install the [GLPK solver](https://www.gnu.org/software/glp
 
 • The notebook [example.ipynb](example.ipynb) shows how the optimization works for an example day.
 
-• [bess_optimizer_mathematical.pdf](bess_optimizer_mathematical.pdf) is a document, which includes the mathematical formulation of the optimization problem. It is meant to accompany the code implementation. The model constraints in the code and in the mathematical formulation are numbered accordingly. 
+• [mathematical_formulation.pdf](mathematical_formulation.pdf) is a document, which includes the mathematical formulation of the optimization problem. It is meant to accompany the code implementation. The model constraints in the code and in the mathematical formulation are numbered accordingly. 
 
 • [LICENSE](LICENSE) is the copyright license of this work.
