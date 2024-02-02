@@ -24,16 +24,18 @@ Note that you have to install the [GLPK solver](https://www.gnu.org/software/glp
 
 The formulation includes a number of abbreviations, below is a short list with explanations:
 
-DAA         Day-ahead Auction. In the German case this is the EPEX Day-ahead auction which takes place at 12:00h on the day before delivery.
+DAA:         Day-ahead Auction. In the German case this is the EPEX Day-ahead auction which takes place at 12:00h on the day before delivery.
 
-IDA          Intraday Auction. In the German case this is the EPEX Intraday auction which takes place at 15:00h on the day before delivery. 
+IDA:         Intraday Auction. In the German case this is the EPEX Intraday auction which takes place at 15:00h on the day before delivery. 
 
-IDC          Intraday Continuous Market. Opens at 15:00h on the day before delivery and closes 5 minutes before delivery.
+IDC:         Intraday Continuous Market. Opens at 15:00h on the day before delivery and closes 5 minutes before delivery.
 
-ID1          The volume-weighted average price of all trades in a specific contract on the Intraday Continuous market.
+ID1:         The volume-weighted average price of all trades in a specific contract on the Intraday Continuous market.
 
-SOC[q]       State of Charge of a Battery at quarter q.
+SOC[q]:      State of Charge of a Battery at quarter q.
 
-CHA[q]       Charge rate of a Battery at quarter q.
+CHA[q]:      Charge rate of a Battery at quarter q.
 
-DIS[q]       Discharge rate of a Battery at quarter q.
+DIS[q]:      Discharge rate of a Battery at quarter q.
+
+
