@@ -1,7 +1,7 @@
 ## Implementation of the FlexPower Three Market BESS Optimization Model in Python using pyomo
 
 
-This repository contains the Three Market Optimization model which is also used to calculate the [Flex Index](https://flex-power.energy/?page_id=5811). 
+This repository contains the Three Market Optimization model which is also used to calculate the [FlexIndex](https://flex-power.energy/?page_id=5811). 
 
 The model calculates the optimal charge-discharge-schedule of a BESS (Battery Energy Storage System) by sequentially optimizing over three German markets: The Day-Ahead auction, the intraday auction and the intraday continuous market (approximated as ID1). The logic is explained in more detail [here](https://flex-power.energy/?page_id=5811). The optimizer is implemented using Pyomo, an open source optimization modelling package for Python.
 
