@@ -1,5 +1,6 @@
 ## Implementation of the FlexPower Three Market BESS Optimization Model in Python using pyomo
 
+
 This repository contains the Three Market Optimization model which is also used to calculate the [Flex Index](https://flex-power.energy/?page_id=5811). 
 
 The model calculates the optimal charge-discharge-schedule of a BESS (Battery Energy Storage System) by sequentially optimizing over three German markets: The Day-Ahead auction, the intraday auction and the intraday continuous market (approximated as ID1). The logic is explained in more detail [here](https://flex-power.energy/?page_id=5811). The optimizer is implemented using Pyomo, an open source optimization modelling package for Python.
@@ -23,10 +24,16 @@ Note that you have to install the [GLPK solver](https://www.gnu.org/software/glp
 
 The formulation includes a number of abbreviations, below is a short list with explanations:
 
-DAA:         Day-ahead Auction. In the German case this is the EPEX Day-ahead auction which takes place at 12:00h on the day before delivery.
+DAA         Day-ahead Auction. In the German case this is the EPEX Day-ahead auction which takes place at 12:00h on the day before delivery.
+
 IDA          Intraday Auction. In the German case this is the EPEX Intraday auction which takes place at 15:00h on the day before delivery. 
+
 IDC          Intraday Continuous Market. Opens at 15:00h on the day before delivery and closes 5 minutes before delivery.
+
 ID1          The volume-weighted average price of all trades in a specific contract on the Intraday Continuous market.
+
 SOC[q]       State of Charge of a Battery at quarter q.
+
 CHA[q]       Charge rate of a Battery at quarter q.
+
 DIS[q]       Discharge rate of a Battery at quarter q.
