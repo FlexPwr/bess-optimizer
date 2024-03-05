@@ -144,19 +144,19 @@ def step1_optimize_daa(n_cycles:int, energy_cap:int, power_cap:int, daa_price_ve
         Set daa positions of quarter 1 and 2 of each hour equal. (Constraint 1.9)
         On the DA Auction, positions in all 4 quarters of the hour have to be identical since trades are taken in hourly blocks. 
         """
-        return model.cha_daa[4 * q + 1] == model.cha_daa[4 * q + 2]
+        return model.dis_daa[4 * q + 1] == model.dis_daa[4 * q + 2]
 
     def dis_daa_quarters_2_3_parity(model, q):
         """
         Set daa positions of quarter 2 and 3 of each hour equal. (Constraint 1.9)
         """
-        return model.cha_daa[4 * q + 2] == model.cha_daa[4 * q + 3]
+        return model.dis_daa[4 * q + 2] == model.dis_daa[4 * q + 3]
 
     def dis_daa_quarters_3_4_parity(model, q):
         """
         Sedaa positions of quarter 3 and 4 of each hour equal. (Constraint 1.9)
         """
-        return model.cha_daa[4 * q + 3] == model.cha_daa[4 * q + 4]
+        return model.dis_daa[4 * q + 3] == model.dis_daa[4 * q + 4]
 
 
 
