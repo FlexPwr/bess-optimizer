@@ -177,6 +177,7 @@ class optimizer:
 
         # Define objective function and solve the optimization problem.
         # The objective is to maximize revenue from DA Auction trades over all possible charge-discharge schedules.
+        self.daa_price_vector = daa_price_vector
 
         model.obj = pyo.Objective(expr=sum(power_cap/4 * daa_price_vector[q-1] * (
             model.dis_daa[q] - model.cha_daa[q]) for q in model.Q), sense=pyo.maximize)
@@ -186,21 +187,21 @@ class optimizer:
 
         # Retrieve arrays of resulting optimal soc/charge/discharge schedules after the DA Auction:
 
-        step1_soc_daa = [model.soc[q].value for q in range(
+        self.step1_soc_daa = [model.soc[q].value for q in range(
             1, len(daa_price_vector) + 1)]
-        step1_cha_daa = [model.cha_daa[q].value for q in range(
+        self.step1_cha_daa = [model.cha_daa[q].value for q in range(
             1, len(daa_price_vector) + 1)]
-        step1_dis_daa = [model.dis_daa[q].value for q in range(
+        self.step1_dis_daa = [model.dis_daa[q].value for q in range(
             1, len(daa_price_vector) + 1)]
 
         # Calculate profit from Day-ahead auction trades:
 
-        step1_profit_daa = sum([power_cap/4 * daa_price_vector[q] * (
-            step1_dis_daa[q] - step1_cha_daa[q]) for q in range(len(daa_price_vector))])
+        self.step1_profit_daa = sum([power_cap/4 * daa_price_vector[q] * (
+            self.step1_dis_daa[q] - self.step1_cha_daa[q]) for q in range(len(daa_price_vector))])
 
-        return(step1_soc_daa, step1_cha_daa, step1_dis_daa, step1_profit_daa)
+        return(self.step1_soc_daa, self.step1_cha_daa, self.step1_dis_daa, self.step1_profit_daa)
 
-    def step2_optimize_ida(self, n_cycles: int, energy_cap: int, power_cap: int, ida_price_vector: list, step1_cha_daa: list, step1_dis_daa: list):
+    def step2_optimize_ida(self, n_cycles: int, energy_cap: int, power_cap: int, ida_price_vector: list):
         """
         Calculates optimal charge/discharge schedule on the intraday auction (ida) for a given 96-d ida_price_vector.
 
@@ -292,43 +293,43 @@ class optimizer:
             """
             The state of charge of each quarter equals the state if charge of the previous quarter plus charges minus discharges. (Constraint 2.5)
             """
-            return model.soc[q+1] == model.soc[q] + power_cap/4 * (model.cha_ida[q] - model.dis_ida[q] + model.cha_ida_close[q] - model.dis_ida_close[q] + step1_cha_daa[q-1] - step1_dis_daa[q-1])
+            return model.soc[q+1] == model.soc[q] + power_cap/4 * (model.cha_ida[q] - model.dis_ida[q] + model.cha_ida_close[q] - model.dis_ida_close[q] + self.step1_cha_daa[q-1] - self.step1_dis_daa[q-1])
 
         def charge_cycle_limit(model):
             """
             Sum of all charges has to be below the daily limit. (Constraint 2.6)
             """
-            return ((np.sum(step1_cha_daa) + sum(model.cha_ida[q] for q in model.Q) - sum(model.dis_ida_close[q] for q in model.Q)) * power_cap/4 <= volume_limit)
+            return ((np.sum(self.step1_cha_daa) + sum(model.cha_ida[q] for q in model.Q) - sum(model.dis_ida_close[q] for q in model.Q)) * power_cap/4 <= volume_limit)
 
         def discharge_cycle_limit(model):
             """
             Sum of all discharges has to be below the daily limit. (Constraint 2.7)
             """
-            return ((np.sum(step1_dis_daa) + sum(model.dis_ida[q] for q in model.Q) - sum(model.cha_ida_close[q] for q in model.Q)) * power_cap/4 <= volume_limit)
+            return ((np.sum(self.step1_dis_daa) + sum(model.dis_ida[q] for q in model.Q) - sum(model.cha_ida_close[q] for q in model.Q)) * power_cap/4 <= volume_limit)
 
         def cha_close_logic(model, q):
             """
             cha_ida_close can only close or reduce existing dis_daa positions. They can only be placed, where dis_daa positions exist. (Constraint 2.8)
             """
-            return model.cha_ida_close[q] <= step1_dis_daa[q-1]
+            return model.cha_ida_close[q] <= self.step1_dis_daa[q-1]
 
         def dis_close_logic(model, q):
             """
             dis_ida_close can only close or reduce existing cha_daa positions. They can only be placed, where cha_daa positions exist. (Constraint 2.9)
             """
-            return model.dis_ida_close[q] <= step1_cha_daa[q-1]
+            return model.dis_ida_close[q] <= self.step1_cha_daa[q-1]
 
         def charge_rate_limit(model, q):
             """
              Sum of cha_ida[q] and cha_daa[q] has to be less or equal to 1. (Constraint 2.10)
              """
-            return model.cha_ida[q] + step1_cha_daa[q-1] <= 1
+            return model.cha_ida[q] + self.step1_cha_daa[q-1] <= 1
 
         def discharge_rate_limit(model, q):
             """
              Sum of dis_ida[q] and dis_daa[q] has to be less or equal to 1. (Constraint 2.11)
              """
-            return model.dis_ida[q] + step1_dis_daa[q-1] <= 1
+            return model.dis_ida[q] + self.step1_dis_daa[q-1] <= 1
 
         # Apply constraints on the model:
 
@@ -353,6 +354,8 @@ class optimizer:
         # Define objective function and solve the optimization problem
         # The objective is to maximize revenue from ID Auction trades over all possible charge-discharge schedules.
 
+        self.ida_price_vector = ida_price_vector
+
         model.obj = pyo.Objective(expr=sum(ida_price_vector[q-1] * power_cap/4 * (
             model.dis_ida[q] + model.dis_ida_close[q] - model.cha_ida[q] - model.cha_ida_close[q]) for q in model.Q), sense=pyo.maximize)
 
@@ -361,32 +364,32 @@ class optimizer:
 
         # Retrieve arrays of resulting optimal soc/charge/discharge schedules after the ID Auction:
 
-        step2_soc_ida = [model.soc[q].value for q in range(
+        self.step2_soc_ida = [model.soc[q].value for q in range(
             1, len(ida_price_vector) + 1)]
-        step2_cha_ida = [model.cha_ida[q].value for q in range(
+        self.step2_cha_ida = [model.cha_ida[q].value for q in range(
             1, len(ida_price_vector) + 1)]
-        step2_dis_ida = [model.dis_ida[q].value for q in range(
+        self.step2_dis_ida = [model.dis_ida[q].value for q in range(
             1, len(ida_price_vector) + 1)]
-        step2_cha_ida_close = [model.cha_ida_close[q].value for q in range(
+        self.step2_cha_ida_close = [model.cha_ida_close[q].value for q in range(
             1, len(ida_price_vector) + 1)]
-        step2_dis_ida_close = [model.dis_ida_close[q].value for q in range(
+        self.step2_dis_ida_close = [model.dis_ida_close[q].value for q in range(
             1, len(ida_price_vector) + 1)]
 
         # Calculate profit from Day-ahead auction trades:
 
-        step2_profit_ida = np.sum(((np.asarray(step2_dis_ida) + step2_dis_ida_close) - (
-            np.asarray(step2_cha_ida) + step2_cha_ida_close)) * ida_price_vector) * power_cap/4
+        self.step2_profit_ida = np.sum(((np.asarray(self.step2_dis_ida) + self.step2_dis_ida_close) - (
+            np.asarray(self.step2_cha_ida) + self.step2_cha_ida_close)) * ida_price_vector) * power_cap/4
 
         # Calculate total physical charge discharge schedules of combined day-ahead and intraday auction trades:
 
-        step2_cha_daaida = np.asarray(
-            step1_cha_daa) - step2_dis_ida_close + step2_cha_ida
-        step2_dis_daaida = np.asarray(
-            step1_dis_daa) - step2_cha_ida_close + step2_dis_ida
+        self.step2_cha_daaida = np.asarray(
+            self.step1_cha_daa) - self.step2_dis_ida_close + self.step2_cha_ida
+        self.step2_dis_daaida = np.asarray(
+            self.step1_dis_daa) - self.step2_cha_ida_close + self.step2_dis_ida
 
-        return(step2_soc_ida, step2_cha_ida, step2_dis_ida, step2_cha_ida_close, step2_dis_ida_close, step2_profit_ida, step2_cha_daaida, step2_dis_daaida)
+        return(self.step2_soc_ida, self.step2_cha_ida, self.step2_dis_ida, self.step2_cha_ida_close, self.step2_dis_ida_close, self.step2_profit_ida, self.step2_cha_daaida, self.step2_dis_daaida)
 
-    def step3_optimize_idc(self, n_cycles: int, energy_cap: int, power_cap: int, idc_price_vector: list, step2_cha_daaida: list, step2_dis_daaida: list):
+    def step3_optimize_idc(self, n_cycles: int, energy_cap: int, power_cap: int, idc_price_vector: list):
         """
         Calculates optimal charge/discharge schedule on the intraday continuous (idc) for a given 96-d idc_price_vector.
 
@@ -478,43 +481,43 @@ class optimizer:
             """
             The state of charge of each quarter equals the state if charge of the previous quarter plus charges minus discharges. (Constraint 3.5)
             """
-            return model.soc[q+1] == model.soc[q] + power_cap/4 * (model.cha_idc[q] - model.dis_idc[q] + model.cha_idc_close[q] - model.dis_idc_close[q] + step2_cha_daaida[q-1] - step2_dis_daaida[q-1])
+            return model.soc[q+1] == model.soc[q] + power_cap/4 * (model.cha_idc[q] - model.dis_idc[q] + model.cha_idc_close[q] - model.dis_idc_close[q] + self.step2_cha_daaida[q-1] - self.step2_dis_daaida[q-1])
 
         def charge_cycle_limit(model):
             """
             Sum of all charges has to be below the daily limit. (Constraint 3.6)
             """
-            return (np.sum(step2_dis_daaida) + sum(model.dis_idc[q] for q in model.Q) - sum(model.cha_idc_close[q] for q in model.Q)) * power_cap/4 <= volume_limit
+            return (np.sum(self.step2_dis_daaida) + sum(model.dis_idc[q] for q in model.Q) - sum(model.cha_idc_close[q] for q in model.Q)) * power_cap/4 <= volume_limit
 
         def discharge_cycle_limit(model):
             """
             Sum of all discharges has to be below the daily limit. (Constraint 3.7)
             """
-            return (np.sum(step2_cha_daaida) + sum(model.cha_idc[q] for q in model.Q) - sum(model.dis_idc_close[q] for q in model.Q)) * power_cap/4 <= volume_limit
+            return (np.sum(self.step2_cha_daaida) + sum(model.cha_idc[q] for q in model.Q) - sum(model.dis_idc_close[q] for q in model.Q)) * power_cap/4 <= volume_limit
 
         def cha_close_logic(model, q):
             """
             cha_idc_close can only close or reduce existing dis_daaida positions. They can only be placed, where dis_daaida positions exist. (Constraint 3.8)
             """
-            return model.cha_idc_close[q] <= step2_dis_daaida[q-1]
+            return model.cha_idc_close[q] <= self.step2_dis_daaida[q-1]
 
         def dis_close_logic(model, q):
             """
             dis_idc_close can only close or reduce existing cha_daaida positions. They can only be placed, where cha_daaida positions exist. (Constraint 3.9)
             """
-            return model.dis_idc_close[q] <= step2_cha_daaida[q-1]
+            return model.dis_idc_close[q] <= self.step2_cha_daaida[q-1]
 
         def charge_rate_limit(model, q):
             """
              Sum of cha_idc[q] and cha_daaida[q] has to be less or equal to 1. (Constraint 3.10)
              """
-            return model.cha_idc[q] + step2_cha_daaida[q-1] <= 1
+            return model.cha_idc[q] + self.step2_cha_daaida[q-1] <= 1
 
         def discharge_rate_limit(model, q):
             """
              Sum of dis_idc[q] and dis_daaida[q] has to be less or equal to 1. (Constraint 3.11)
              """
-            return model.dis_idc[q] + step2_dis_daaida[q-1] <= 1
+            return model.dis_idc[q] + self.step2_dis_daaida[q-1] <= 1
 
         # Apply constraints on the model:
 
@@ -540,6 +543,8 @@ class optimizer:
         # Define objective function and solve the optimization problem
         # The objective is to maximize revenue from ID Continuous trades over all possible charge-discharge schedules.
 
+        self.idc_price_vector = idc_price_vector
+
         model.obj = pyo.Objective(expr=sum([idc_price_vector[q-1] * power_cap/4 * (
             model.dis_idc[q]+model.dis_idc_close[q]-model.cha_idc[q]-model.cha_idc_close[q]) for q in model.Q]), sense=pyo.maximize)
 
@@ -548,27 +553,50 @@ class optimizer:
 
         # Retrieve arrays of resulting optimal soc/charge/discharge schedules after the ID Auction:
 
-        step3_soc_idc = [model.soc[q].value for q in range(
+        self.step3_soc_idc = [model.soc[q].value for q in range(
             1, len(idc_price_vector) + 1)]
-        step3_cha_idc = [model.cha_idc[q].value for q in range(
+        self.step3_cha_idc = [model.cha_idc[q].value for q in range(
             1, len(idc_price_vector) + 1)]
-        step3_dis_idc = [model.dis_idc[q].value for q in range(
+        self.step3_dis_idc = [model.dis_idc[q].value for q in range(
             1, len(idc_price_vector) + 1)]
-        step3_cha_idc_close = [model.cha_idc_close[q].value for q in range(
+        self.step3_cha_idc_close = [model.cha_idc_close[q].value for q in range(
             1, len(idc_price_vector) + 1)]
-        step3_dis_idc_close = [model.dis_idc_close[q].value for q in range(
+        self.step3_dis_idc_close = [model.dis_idc_close[q].value for q in range(
             1, len(idc_price_vector) + 1)]
 
         # Calculate profit from Day-ahead auction trades:
 
-        step3_profit_idc = np.sum(((np.asarray(step3_dis_idc) + step3_dis_idc_close) - (
-            np.asarray(step3_cha_idc) + step3_cha_idc_close)) * idc_price_vector) * power_cap/4
+        self.step3_profit_idc = np.sum(((np.asarray(self.step3_dis_idc) + self.step3_dis_idc_close) - (
+            np.asarray(self.step3_cha_idc) + self.step3_cha_idc_close)) * idc_price_vector) * power_cap/4
 
         # Calculate total physical charge discharge schedules of combined day-ahead and intraday auction trades:
 
-        step3_cha_daaidaidc = np.asarray(
-            step2_cha_daaida) - step3_dis_idc_close + step3_cha_idc
-        step3_dis_daaidaidc = np.asarray(
-            step2_dis_daaida) - step3_cha_idc_close + step3_dis_idc
+        self.step3_cha_daaidaidc = np.asarray(
+            self.step2_cha_daaida) - self.step3_dis_idc_close + self.step3_cha_idc
+        self.step3_dis_daaidaidc = np.asarray(
+            self.step2_dis_daaida) - self.step3_cha_idc_close + self.step3_dis_idc
 
-        return(step3_soc_idc, step3_cha_idc, step3_dis_idc, step3_cha_idc_close, step3_dis_idc_close, step3_profit_idc, step3_cha_daaidaidc, step3_dis_daaidaidc)
+        return(self.step3_soc_idc, self.step3_cha_idc, self.step3_dis_idc, self.step3_cha_idc_close, self.step3_dis_idc_close, self.step3_profit_idc, self.step3_cha_daaidaidc, self.step3_dis_daaidaidc)
+
+    # Calculates the revenue of DAA, IDA, and IDC market. And total revenue.
+    # Each revenue formala can be found in https://github.com/FlexPwr/bess-optimizer/blob/main/mathematical_formulation.pdf
+
+    def revenue_daa(self) -> float:
+        # Calculate the revenue of DAA market
+
+        return(np.sum(np.asarray(self.daa_price_vector) * (np.asarray(self.step1_dis_daa) - self.step1_cha_daa)) * 1/4)
+
+    def revenue_ida(self) -> float:
+        # Calculate the revenue of IDA market
+
+        return(np.sum(np.asarray(self.ida_price_vector) * (np.asarray(self.step2_dis_ida) + self.step2_dis_ida_close - self.step2_cha_ida - self.step2_cha_ida_close)) * 1/4)
+
+    def revenue_idc(self) -> float:
+        # Calculate the revenue of IDC market
+
+        return(np.sum(np.asarray(self.idc_price_vector) * (np.asarray(self.step3_dis_idc) + self.step3_dis_idc_close - self.step3_cha_idc - self.step3_cha_idc_close)) * 1/4)
+
+    def revenue_total(self) -> float:
+        # Calculate the total revenue
+
+        return(self.revenue_daa() + self.revenue_ida() + self.revenue_idc())
